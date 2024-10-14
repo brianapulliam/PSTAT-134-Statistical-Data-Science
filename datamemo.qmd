@@ -27,6 +27,10 @@ Is there any missing data? About how much? Do you have an idea for how to handle
 
 There are both quantitative and qualitative variables but we think the quantitative variables will make the most sense to work with. There is no missing data.
 
+### An overview of your research question(s)
+
+We are interested in predicting how many streams a song can get given a combination of musical attributes such as energy, danceability, and speechiness. The response variable streams is the number of times a song has been played, either in full or for at least 30 seconds. We think that danceability %, energy %, and acousticness will be the most useful predictors because these traits show the current popular trends.
+
 ### Your proposed project timeline
 
 #### When do you plan on having your data set loaded, beginning your exploratory data analysis, etc? Provide a general timeline for the rest of the quarter.
@@ -49,13 +53,13 @@ There are both quantitative and qualitative variables but we think the quantitat
 
     -   Run the models and pick the best performing models
 
--   Week 8: Edits
+-   Week 8: Write Up
 
     -   Create and insert written parts for each portion of the project including EDA, models, and final results
 
 -   Week 9: Edits
 
-    -    Edit and correct the write up
+    -   Edit and correct the write up
 
     -   Ensure eda and models are explained clearly
 
