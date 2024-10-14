@@ -1,0 +1,70 @@
+---
+title: "Data Memo"
+author: "Leah Paredes, Valeria Lopez, Briana Pullman, Tucker Kupfer"
+format: html
+editor: visual
+---
+
+### An overview of your dataset
+
+#### What does it include?
+
+The Spotify Most Streamed Songs kaggle dataset contains information on some of the most streamed songs on Spotify. It includes popularity data such as streaming rank and the total number of streams as well as song attributes such as the key, bpm, danceability %, energy %, etc.
+
+#### Where and how will you be obtaining it? Include the link and source. If you plan on creating a web scraper or using an API, describe your plans.
+
+[data link](https://www.kaggle.com/datasets/abdulszz/spotify-most-streamed-songs)
+
+We plan on web scraping the data from the kaggle website. We will get the html of the page and pull out the table containing our data. We will then extract the relevant entries and predictors from the items within the table.
+
+#### About how many observations? How many predictors?
+
+There are 943 observations and 25 predictors
+
+#### What types of variables will you be working with?
+
+Is there any missing data? About how much? Do you have an idea for how to handle it?
+
+There are both quantitative and qualitative variables but we think the quantitative variables will make the most sense to work with. There is no missing data.
+
+### Your proposed project timeline
+
+#### When do you plan on having your data set loaded, beginning your exploratory data analysis, etc? Provide a general timeline for the rest of the quarter.
+
+-   Week 3: Tidy Data
+
+    -   Structure data if it’s unstructured and evaluate the missing data
+
+-   Week 4-5: Exploratory Data Analysis
+
+    -   Explore the various variables
+
+    -   Check correlation graphs
+
+    -   Determine variables we want to include and exclude
+
+-   Week 6 -7: Run Models
+
+    -   Decide on various models for project
+
+    -   Run the models and pick the best performing models
+
+-   Week 8: Edits
+
+    -   Create and insert written parts for each portion of the project including EDA, models, and final results
+
+-   Week 9: Edits
+
+    -    Edit and correct the write up
+
+    -   Ensure eda and models are explained clearly
+
+-   Week 10
+
+    -   Finalize project Create presentation and practice
+
+### **Any questions or concerns**
+
+#### Any specific questions you have for me/the instructional team?
+
+One of the specific questions which we have is if we are allowed to use this dataset given there is a Spotify dataset already provided in the course. 
