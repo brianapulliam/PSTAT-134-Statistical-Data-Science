@@ -1,0 +1,76 @@
+---
+title: "Data Memo"
+author: "Leah Paredes, Valeria Lopez, Briana Pullman, Tucker Kupfer"
+format: html
+editor: visual
+---
+
+### An overview of your dataset
+
+#### What does it include?
+
+The dataset we are choosing contains Covid-19 metrics for each state and US territories on the last day the API was updated (March 7, 2021). The dataset includes the state and the positive and negative cases in each location. It has metrics on probable cases, hospitalizations, deaths, as well as data on antibody and antigen tests.
+
+#### Where and how will you be obtaining it? Include the link and source. If you plan on creating a web scraper or using an API, describe your plans.
+
+[Covid API](https://covidtracking.com/data/api)
+
+We plan on accessing the API, linked above, to obtain metrics on Covid-19 data to build predictive models. The API itself has data on each state as well as historic data. At the moment we're focusing on the last date the API was active.
+
+#### About how many observations? How many predictors?
+
+There are 56 observations 1 for each state and territory. There are 56 predictors as well .
+
+#### What types of variables will you be working with?
+
+Is there any missing data? About how much? Do you have an idea for how to handle it?
+
+There are both quantitative and qualitative variables but we think the quantitative variables will make the most sense to work with. There is some missing data, but as a group we will decide if removing the data from our models will be beneficial.
+
+### An overview of your research question(s)
+
+We are interested in predicting how many streams a song can get given a combination of musical attributes such as energy, danceability, and speechiness. The response variable streams is the number of times a song has been played, either in full or for at least 30 seconds. We think that danceability %, energy %, and acousticness will be the most useful predictors because these traits show the current popular trends.
+
+We are interested in predicting the positive and negative cases from state to state. We also want to see the ratios of positive cases with recovered cases. We would also like to compare recovery rates from state to state and see which states struggled more. Outside of the data we are open to researching resource allocation for each state.
+
+### Your proposed project timeline
+
+#### When do you plan on having your data set loaded, beginning your exploratory data analysis, etc? Provide a general timeline for the rest of the quarter.
+
+-   Week 3: Tidy Data
+
+    -   Structure data if it’s unstructured and evaluate the missing data
+
+-   Week 4-5: Exploratory Data Analysis
+
+    -   Explore the various variables
+
+    -   Check correlation graphs
+
+    -   Determine variables we want to include and exclude
+
+-   Week 6 -7: Run Models
+
+    -   Decide on various models for project
+
+    -   Run the models and pick the best performing models
+
+-   Week 8: Write Up
+
+    -   Create and insert written parts for each portion of the project including EDA, models, and final results
+
+-   Week 9: Edits
+
+    -   Edit and correct the write up
+
+    -   Ensure eda and models are explained clearly
+
+-   Week 10
+
+    -   Finalize project Create presentation and practice
+
+### **Any questions or concerns**
+
+#### Any specific questions you have for me/the instructional team?
+
+Is it okay if the data we're using isn't current since the API stopped collecting data in 2021.
