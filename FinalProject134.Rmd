@@ -1,0 +1,52 @@
+---
+title: "Final Project"
+author: 
+date: "2024-12-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(httr)
+library(jsonlite)
+library(tidyverse)
+library(dplyr)
+library(naniar)
+
+```
+ 
+## Introduction
+
+The COVID-19 pandemic drastically affected people's lives all over the world. Many people were forced to shelter at home and
+
+### Why is Matters?
+Despite the spread of the virus all over the country, some states had different approaches to the pandemic itself(Erwin). Despite the country having the CDC  As a group we decided to focus on two states who's public health departments differed and how it affected the spread of COVID-19 in those states. 
+
+### Our Goals
+Despite national 
+
+
+## Accessing Our Data
+
+In order to access the data of interest, we used an API which provides access to national and state data regarding COVID-19. The initial website used is [Covid-API](https://covidtracking.com/data/api). This website gives access to multiple API's that contain historic and single day data for the nation as well as single states. As stated earlier the purpose of our project was to examine the effects of COVID-19 in two different states.  
+
+*note: explain throughly what an API is 
+
+### Cleaning our Data
+
+
+
+
+
+## Exploratory Data Analysis 
+
+## Models??
+
+## Results
+
+## Conclusion
+
+
+## Sources
+
+Erwin, P. C., Mucheck, K. W., & Brownson, R. C. (2021). Different Responses to COVID-19 in Four US States: Washington, New York, Missouri, and Alabama. American journal of public health, 111(4), 647–651. https://doi.org/10.2105/AJPH.2020.306111
