@@ -137,6 +137,7 @@ plot(cv.out.lasso)
 abline(v = log(cv.out.lasso$lambda.min), col="red", lwd=3, lty=2)
 
 bestlam_AL = cv.out.lasso$lambda.min
+bestlam_AL
 
 out = glmnet(x, y, alpha=1, lambda=grid)
 lasso.coef=predict(lasso.mod,type="coefficients",s=bestlam_AL)[1:12,]
@@ -156,6 +157,7 @@ plot(cv.out.lasso)
 abline(v = log(cv.out.lasso$lambda.min), col="red", lwd=3, lty=2)
 
 bestlam_WA = cv.out.lasso$lambda.min
+bestlam_WA
 
 out = glmnet(x, y, alpha=1, lambda=grid)
 lasso.coef=predict(lasso.mod,type="coefficients",s=bestlam_WA)[1:12,]
@@ -198,4 +200,90 @@ plot(gam_WA$residuals ~ gam_WA$fitted.values,
      xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs Fitted")
 abline(h = 0, col = "red")
 
+
+###############################################################################
+
+# Model Training and Testing
+# Alabama
+set.seed(123) # Ensure reproducibility
+AL_train_index <- sample(1:nrow(AL_complete), size = 0.7 * nrow(AL_complete)) # 70% training
+AL_train_data <- AL_complete[AL_train_index, ]
+AL_test_data <- AL_complete[-AL_train_index, ]
+
+trained_gam_AL <- gam(death ~ s(positive) + s(totalTestResults) + s(hospitalized) + 
+                s(positiveCasesViral) + s(deathIncrease) +
+                s(daysSinceStart), data = AL_train_data) 
+              
+AL_predictions <- predict(trained_gam_AL, newdata = AL_test_data)
+
+# Mean Squared Error (MSE)
+mse <- mean((AL_test_data$death - AL_predictions)^2)
+
+# Root Mean Squared Error (RMSE)
+rmse <- sqrt(mse)
+
+# Mean Absolute Error (MAE)
+mae <- mean(abs(AL_test_data$death - AL_predictions))
+
+# Print results
+print(list(MSE = mse, RMSE = rmse, MAE = mae))
+
+              
+# Plot of Actual and Predicted Deaths in Alabama over Time
+plot_data <- data.frame(
+  daysSinceStart = AL_test_data$daysSinceStart,
+  Actual = AL_test_data$death,
+  Predicted = AL_predictions
+)
+
+
+ggplot(plot_data, aes(x = daysSinceStart)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
+  labs(title = "Actual vs Predicted Deaths Over Time (Alabama)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+# Washington
+set.seed(123) # Ensure reproducibility
+WA_train_index <- sample(1:nrow(WA_complete), size = 0.7 * nrow(WA_complete)) # 70% training
+WA_train_data <- WA_complete[WA_train_index, ]
+WA_test_data <- WA_complete[-WA_train_index, ]
+
+trained_gam_WA <- gam(death ~ s(positive) + s(total) + s(daysSinceStart), 
+                      data = WA_train_data) 
+
+WA_predictions <- predict(trained_gam_WA, newdata = WA_test_data)
+
+# Mean Squared Error (MSE)
+WA_mse <- mean((WA_test_data$death - WA_predictions)^2)
+
+# Root Mean Squared Error (RMSE)
+WA_rmse <- sqrt(WA_mse)
+
+# Mean Absolute Error (MAE)
+WA_mae <- mean(abs(WA_test_data$death - WA_predictions))
+
+# Print results
+print(list(MSE = WA_mse, RMSE = WA_rmse, MAE = WA_mae))
+
+
+# Plot of Actual and Predicted Deaths in WASHINGTON over Time
+WA_plot_data <- data.frame(
+  daysSinceStart = WA_test_data$daysSinceStart,
+  Actual = WA_test_data$death,
+  Predicted = WA_predictions
+)
+
+
+ggplot(WA_plot_data, aes(x = daysSinceStart)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
+  labs(title = "Actual vs Predicted Deaths Over Time (Washington)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
 
