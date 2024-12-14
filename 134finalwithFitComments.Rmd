@@ -297,11 +297,11 @@ ggplot(WA_complete, aes(x = daysSinceStart, y = death)) +
 
 ```
 
-## Model Fitting
+# Methods
 
-### We chose to use Generalized Additive Models (GAMs) with the Poisson family because the response variable, COVID-19 deaths, is count data and is best modeled using a distribution suitable for non-negative integer values. The Poisson family, coupled with a log link function, allows for modeling the relationship between predictors and the response variable while accounting for the exponential nature of count data.
-### GAMs are particularly well-suited for this analysis as they allow for flexible, nonlinear relationships between the predictors and the response. By applying thin-plate regression splines, the model can effectively capture complex trends in the data, such as temporal changes in deaths and nonlinear effects of predictors like positive cases or hospitalizations.
-#### To ensure that the most important predictors were included in the model, we used lasso regression for variable selection. Lasso regression shrinks coefficients of less relevant predictors to zero, enabling us to focus on significant variables while avoiding overfitting. The variables selected by lasso were then used in the GAM to refine the predictive power of the model.
+### Model Fitting
+
+We chose to use Generalized Additive Models (GAMs) with the Poisson family because the response variable, COVID-19 deaths, is count data and is best modeled using a distribution suitable for non-negative integer values. The Poisson family, coupled with a log link function, allows for modeling the relationship between predictors and the response variable while accounting for the exponential nature of count data. GAMs are particularly well-suited for this analysis as they allow for flexible, nonlinear relationships between the predictors and the response. By applying thin-plate regression splines, the model can effectively capture complex trends in the data, such as temporal changes in deaths and nonlinear effects of predictors like positive cases or hospitalizations. To ensure that the most important predictors were included in the model, we used lasso regression for variable selection. Lasso regression shrinks coefficients of less relevant predictors to zero, enabling us to focus on significant variables while avoiding overfitting. The variables selected by lasso were then used in the GAM to refine the predictive power of the model.
 
 ```{r}
 # Fit the GAM for the AL_complete data using the selected variables from LASSO
@@ -341,10 +341,12 @@ abline(h = 0, col = "red")
 
 ```
 
-### The model summaries indicate strong performance, with adjusted R-squared values close to 1 and a high percentage of deviance explained, signifying that the models captured nearly all variability in deaths. The significance of smooth terms in the summaries, with low p-values, underscores the importance of the chosen predictors and the utility of using GAMs to account for nonlinearities. Residual diagnostics further affirm the adequacy of the models by confirming the assumptions of the Poisson regression.
-### Overall, the combination of GAMs and lasso regression provides a robust framework for understanding and predicting COVID-19 deaths, while also allowing for clear interpretability of the underlying relationships between predictors and the response variable.
+The model summaries indicate strong performance, with adjusted R-squared values close to 1 and a high percentage of deviance explained, signifying that the models captured nearly all variability in deaths. The significance of smooth terms in the summaries, with low p-values, underscores the importance of the chosen predictors and the utility of using GAMs to account for nonlinearities. Residual diagnostics further affirm the adequacy of the models by confirming the assumptions of the Poisson regression.
+
+Overall, the combination of GAMs and lasso regression provides a robust framework for understanding and predicting COVID-19 deaths, while also allowing for clear interpretability of the underlying relationships between predictors and the response variable.
 
 ### Training and Testing
+We split the models into training and testing. We fit our (GAM) model to the training data trying to predict the amount of death when we smooth over our predictor variables. We then stored our predictions into our `AL_predictions` and `WA_predictions`. We compared our predictions to the testing data with the results below.
 
 #### Alabama
 
