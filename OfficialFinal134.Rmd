@@ -1,0 +1,486 @@
+---
+title: "COVID-19 Analysis Project"
+author: "Leah Paredes, Briana Pulliam, Tucker Kupfer, Valeria Lopez"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(httr)
+library(jsonlite)
+library(tidyverse)
+library(kableExtra)
+library(naniar)
+library(glmnet)
+library(mice)
+library(ggplot2)
+library(mgcv)
+library(dplyr)
+```
+
+## Introduction
+
+[![Image 1: CDC medical illustrator of COVID-19](germ.jpg){width="518"}](https://www.nytimes.com/2020/04/01/health/coronavirus-illustration-cdc.html)
+
+The COVID-19 outbreak was a global public health emergency that affected people's lives all over the world. COVID-19 is an infectious disease caused by the SARS-CoV2 virus that spread from person to person most commonly through droplet transmission. Once a person tested positive they could develop a variety of symptoms ranging from mild to severe ([WHO](https://www.who.int/health-topics/coronavirus#tab=tab_1)). In an effort to slow the rapid spread, many public health officials called for stay at home orders which forced non-essential workers to shelter at home. The pandemic led to huge loss of life, increased poverty, and economic loss ([Ciotti](https://www.tandfonline.com/doi/full/10.1080/10408363.2020.1783198#abstract)). It was an event that lead the world to think about responsibility public health offices have when dealing with a pandemic.
+
+### Why it Matters?
+
+Although one might think the same measures were used throughout the entire country, every state in our country had the ability to implement their own measures to help curb the spread of the virus. States were allowed to determine testing sites, mask mandates, stay-at-home orders, isolation periods, etc. The differences across states had lasting impacts on the people living there. When research of state measures is conducted in combination with state data we can come see which states had lower positives tests. Did states with more restrictive measures have lower positive test? Hospitalizations? Deaths? How can we use state data in the event of another pandemic. Our project will compare the COVID-19 data for two states and see how their infection rates differed.
+
+## Accessing Our Data
+
+In order to access the data of interest, we used an API which provides access to national and state data regarding COVID-19. The initial website used is [Covid-API](https://covidtracking.com/data/api). This website is run by The COVID Tracking Project, a volunteer organization launched by The Atlantic that collected and published state data regarding the COVID-19 outbreak. This is an Open API, which means that it’s open for public use. There were parameters available regarding specific dates as well as states, and while we're focused on the states of Alabama and Washington, we want to access all historic data on all available states.
+
+We use the `GET` function access the API and store the response into `res`. `res` stores the data as Unicode so we convert it to a JOSN character list containing all our requested data.
+
+```{r}
+res <- GET("https://api.covidtracking.com/v1/states/daily.json")
+states_data <- fromJSON(rawToChar(res$content))
+```
+
+## Exploratory Data Analysis
+
+Exploratory data analysis (EDA) is an essential part of the analysis process. It gives us insight into the data we have at hand, identify possible problems, and allow us to see what we have to work with when it comes to our analysis. Initially we should look at the amount of variables within `states_data`.
+
+```{r}
+names(states_data)
+```
+
+Looking at this we can see there are 56 separate variables! This is a lot of different variables and we most likely will not need most of them, but it's important to see what they were and what they represent. When we look at the Covid Tracking Project website we can cross reference the variables and see what they represent and if they will be useful.
+
+We can see from the figure above that there are 56 individual variables. Although there are many variables, not every single one will be useful for our analysis. When you reference the API access site and our `states_data` you're able to see all the variables are listed with a brief description of each one.
+
+![](variables.jpg)
+
+We can see that we have a variable representing each state, but upon further inspection we notice that it also includes US territories.
+
+```{r}
+unique(states_data$state)
+
+```
+
+We also know there is a variable regarding the dates of all the observations and from the API site we know there was data collection from January 2020 and March 2021. We do not know if each state and territory have the same amount of observations during this period.
+
+We start by grouping the states observations and then seeing the amount of observations each state has.
+
+```{r}
+date_recorded <- states_data %>% 
+  group_by(state) %>% 
+  count() 
+
+date_recorded %>% 
+  kbl() %>%
+  scroll_box(width = "300px", height = "400px")
+
+  
+```
+
+Now for us to be able to better analyze the data we are going to arrange the states from the largest number of observations to the lowest number of observations.
+
+```{r}
+date_recorded %>% 
+  arrange(n)
+  
+
+```
+
+To visualize the data we are working with we are going to graph the 6 states with the highest amount of observations and the 6 states with the lowest amount of observations.
+
+```{r, fig.show='hold', out.width="50%"}
+
+date_recorded %>%
+  arrange(desc(n)) %>% 
+  head() %>% 
+  ggplot(aes(x =reorder(state, -n), y = n)) +
+  geom_bar(stat = "identity", fill = "dodgerblue") +
+  labs(
+    title = "6 States with highest observations", 
+    x = "State", 
+    y = "Observations"
+  )
+
+date_recorded %>%
+  filter(!state %in% c("AS","GU","MP","VI", "VT", "PR")) %>% #removing included territories
+  arrange(n) %>% 
+  head() %>% 
+  ggplot(aes(x=reorder(state, n), y = n)) +
+  geom_bar(stat = "identity", fill = "forestgreen") +
+  labs(
+    title = "6 States with lowest observations", 
+    x = "State", 
+    y = "Observations"
+  )
+
+```
+
+Looking at these two graphs we can see the states with the most observations are Washington, Massachusetts, Florida, Virignia, Nebraska , and New Jersey. The states with the least observations are Alabama, Idaho, Louisiana, Maine, Montana and Missippi. It seems Alabama has the least observations.
+
+```{r, fig.show='hold', out.width="50%"}
+death <- states_data %>% 
+  group_by(state) %>% 
+  filter(date == max(date)) %>% 
+  select(state, death)
+
+death %>% 
+  arrange(desc(death)) %>% 
+  head() %>% 
+  ggplot(death, mapping = aes(x = reorder(state, -death), y = death)) +
+  geom_bar(stat = "identity") + theme_minimal() +
+  labs(
+    title = "Highest Cumulative COVID-19 Deaths by State",
+    x = "State",
+    y = "Cumulative Deaths"
+  )
+
+death %>% 
+  filter(!state %in% c("AS","GU","MP","VI", "VT", "DC")) %>% #removing included territories
+  arrange(desc(death)) %>% 
+  tail() %>% 
+  ggplot(death, mapping = aes(x = reorder(state, -death), y = death)) +
+  geom_bar(stat = "identity") + theme_minimal() +
+  labs(
+    title = "Lowest Cumulative COVID-19 Deaths by State",
+    x = "State",
+    y = "Cumulative Deaths"
+  ) 
+
+  
+```
+
+Although the chart has the highest amount of cumulative deaths, it's important to note that these particular states have a population that is significantly larger than most states. This could lead to a higher cumulative death count. From our data we can see the states with the highest cumulative death counts are California, Texas, New York, Pensylvannia and New Jersey. The states with lowest cumulative death counts are Montana, New Hampshire, Maine, Wyoming, Hawaii, and Alaska. Most of these states also have very low populations. Perhaps in the future we could graph the death in proportion to the population.
+
+## Data Cleaning
+
+After our EDA we decided on exploring the data for Washington and Alabama. We chose these states because Washington and Alabama were polar opposites in the amount of observations with Washington having the most and Alabama having the least, along with their similarities in their populations according to the 2020 Census, we decided to use these two states.
+
+```{r}
+AL <- states_data %>% 
+  filter(state == "AL")
+
+WA <- states_data %>% 
+  filter(state == "WA") 
+
+```
+
+In our EDA we also saw that many of our variables had an overwhelming amount of missing data. We found out that not all states reported all the variables included. We decided to calculate the proportion of missing values in each column, but we only kept columns that had 35% or fewer values are missing. After that the two datasets had different amounts of variables so we decided to individually remove the variables that were outside the scope of our project. We then filtered out variables that contained constant data.
+
+```{r}
+AL <- AL %>% 
+  select(which(colMeans(is.na(.)) <= 0.35),"death",
+         "recovered","onVentilatorCumulative",
+         -state,-hash,-checkTimeEt,-dateChecked,
+         -hospitalizedCurrently,-hospitalizedCumulative,
+         -probableCases,-dateModified,-checkTimeEt,
+         -lastUpdateEt,-negative)
+AL <- AL %>% select_if(~ length(unique(.)) > 1)
+
+WA <- WA %>% 
+   select(which(colMeans(is.na(.)) <= 0.35),"death",
+         "recovered",,"onVentilatorCumulative")
+WA <- WA %>% select_if(~ length(unique(.)) > 1)
+
+```
+
+To ensure both datasets have the same variables, we see which of those variables overlap and then only select them for both of the datasets.
+
+```{r}
+common_columns <- intersect(names(AL), names(WA)) 
+common_columns
+
+# Subset each data frame to keep only the common columns
+AL <- AL %>% select(all_of(common_columns))
+WA <- WA %>% select(all_of(common_columns))
+
+```
+
+Once the variables are finalized for both `AL` and `WA` we want to see the proportion of missing values for each variable with the `vis_miss` function.
+
+```{r, fig.show='hold', out.width="50%"}
+vis_miss(AL)
+vis_miss(WA)
+```
+
+From the variables selected we can see there is a small portion of data missing from each data set. We want to have full data sets in order to analyze so we're going to use imputation to fill those missing values. In this case we're working on predictive mean matching (regression). Here we generate 5 imputed datasets and we take their averages to fill our missing values. It leads to a more robust imputation.
+
+```{r, results='hide', warning=FALSE, cache=T}
+set.seed(123)
+
+imputed_AL <- mice(AL%>%select(-date), m = 5, method = 'pmm', maxit = 50, seed = 500)
+AL_complete <- complete(imputed_AL)
+
+imputed_WA <- mice(WA%>%select(-date), m = 5, method = 'pmm', maxit = 50, seed = 500)
+WA_complete <- complete(imputed_WA)
+
+
+```
+
+We intially removed the date column from the imputation since dates are not imputed, but we later added it back after the imputation.
+
+```{r}
+AL_complete$date <- AL$date
+WA_complete$date <- WA$date
+
+WA_complete <- WA_complete %>% drop_na(positive, positiveCasesViral)
+
+```
+
+```{r, fig.show='hold', out.width="50%"}
+vis_miss(AL_complete)
+vis_miss(WA_complete)
+```
+
+We no longer have missing data! Earlier we made note that Washington and Alabama did not have the same amount of observations so now we'll see what day they began to report COVID data.
+
+```{r}
+WA$date %>% tail()%>% kable()
+AL$date %>% tail() %>% kable()
+```
+
+```{r}
+nrow(AL_complete)
+nrow(WA_complete)
+```
+
+From here we can see that `AL` has 366 entries while `WA` has 420. We want to have an even comparison so we will find the date for `WA` starts on January 14, 2020 while `AL` starts on March 7th, 2020.
+
+Now we're converting `date` into a YYYY-MM-DD date format. Then a baseline date (2020-01-01) is set so we're able to compare the data sets more easily. We do this to easily compute the amount of days that have been passed since the baseline date.
+
+```{r}
+# Convert date column to Date format
+AL_complete$date <- as.Date(as.character(AL_complete$date), format = "%Y%m%d")
+WA_complete$date <- as.Date(as.character(WA_complete$date), format = "%Y%m%d")
+
+# Set the baseline date
+baseline_date <- as.Date("2020-01-01")
+
+# Compute days since the baseline date
+AL_complete$daysSinceStart <- as.numeric(AL_complete$date - baseline_date)
+WA_complete$daysSinceStart <- as.numeric(WA_complete$date - baseline_date)
+```
+
+## E.D.A of Cleaned Data
+
+#### Correlation Plot
+
+```{r, side-by-side-plots, fig.show="hold", fig.width=4, fig.height=4}
+library(corrr)
+library(corrplot)
+AL_corr <- AL_complete %>% 
+  select(-date) %>% 
+  cor() %>% 
+  corrplot(type = "lower", diag = F, method = "number", number.cex = 0.4, title = "Correlation Plot for Alabama Variables")
+
+WA_corr <- WA_complete %>% 
+  select(-date) %>% 
+  cor() %>% 
+  corrplot(type = "lower", diag = F, method = "number", number.cex = 0.4, title = "Correlation Plot for Washington Variables")
+```
+
+From the correlation plot we can see that the variables are all positively correlated with some variables being stronger correlated with others. We see that the variables which have the highest correlations `death` are `positive` (0.98), `hospitalized` (0.97) and `positiveCasesViral` (0.97), meaning as `death` increases so do the other variables. On the other hand, the variables which are the least correlated with `death` are `totalTestResultsIncrease` (0.16) and `hospitalizedIncrese` (0.15) meaning as `death` increased there did not seem to be much of a upward trend or downward trend pattern with those variables.
+
+Now we want to take a look at the `death` variable over time for each of the states.
+
+```{r}
+# Deaths Over Time Visualization
+
+# Plot for Alabama
+ggplot(AL_complete, aes(x = daysSinceStart, y = death)) +
+  geom_line(color = "blue") +
+  labs(title = "Deaths Over Time (Alabama)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  theme_minimal()
+```
+
+```{r}
+# Plot for Washington
+ggplot(WA_complete, aes(x = daysSinceStart, y = death)) +
+  geom_line(color = "red") +
+  labs(title = "Deaths Over Time (Washington)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  theme_minimal()
+```
+
+When looking at the graph for Alabama and then for Washington we see that they seem to be similar. Some of the similarities we see are the upward trend for the data, which is to be expected, although there is odd jump up and then down in total deaths at the beginning of the graphs which does not make sense and could be further investigated in the future. One aspect to note is the ranges of the y-axis in the graphs representing deaths. Although the graphs appear to be very similar and follow the same trend over time, the range for Alabama is 0 to a little over 10,000 whereas the range for Washington is 0 to a little over 5,000. 
+
+Now in order to visualize the differences in the ranges of the states we will set the ranges of the graphs to be the same. 
+
+```{r, warning=FALSE}
+# Plot for Alabama
+ggplot(AL_complete, aes(x = daysSinceStart, y = death)) +
+  geom_line(color = "blue") +
+  labs(title = "Deaths Over Time (Alabama)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  scale_x_continuous(limits = c(0, 450), breaks = seq(0, 450, by = 50)) +
+  scale_y_continuous(limits = c(0, 10000), breaks = seq(0, 10000, by = 1000)) +
+  theme_minimal()
+```
+
+```{r}
+# Plot for Washington
+ggplot(WA_complete, aes(x = daysSinceStart, y = death)) +
+  geom_line(color = "red") +
+  labs(title = "Deaths Over Time (Washington)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  scale_x_continuous(limits = c(0, 450), breaks = seq(0, 450, by = 50)) +
+  scale_y_continuous(limits = c(0, 10000), breaks = seq(0, 10000, by = 1000)) +
+  theme_minimal()
+```
+
+From the graphs, the difference in the number of deaths is now more more apparent, showing that Washington had nearly half the amount of deaths when comparing to Alabama. 
+
+## Model Fitting
+
+We chose to use Generalized Additive Models (GAMs) with the Poisson family because the response variable, COVID-19 deaths, is count data and is best modeled using a distribution suitable for non-negative integer values. The Poisson family, coupled with a log link function, allows for modeling the relationship between predictors and the response variable while accounting for the exponential nature of count data.
+
+GAMs are particularly well-suited for this analysis as they allow for flexible, nonlinear relationships between the predictors and the response. By applying thin-plate regression splines, the model can effectively capture complex trends in the data, such as temporal changes in deaths and nonlinear effects of predictors like positive cases or hospitalizations.
+
+To ensure that the most important predictors were included in the model, we used lasso regression for variable selection. Lasso regression shrinks coefficients of less relevant predictors to zero, enabling us to focus on significant variables while avoiding overfitting. The variables selected by lasso were then used in the GAM to refine the predictive power of the model.
+
+
+```{r}
+# Fit the GAM for the AL_complete data using the selected variables from LASSO
+gam_AL <- gam(death ~ s(positive) + s(totalTestResults) + s(hospitalized) + 
+                      s(positiveCasesViral) +
+                      s(daysSinceStart), 
+              data = AL_complete, 
+              family = poisson())
+summary(gam_AL)
+# Plot the smooths
+plot(gam_AL, pages = 1, residuals = TRUE, rug = TRUE)
+# Check GAM diagnostics
+gam.check(gam_AL)
+# Plot residuals vs fitted
+plot(gam_AL$residuals ~ gam_AL$fitted.values, 
+     xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs Fitted")
+abline(h = 0, col = "red")
+
+
+```
+
+```{r}
+# Fit the GAM for the WA_complete data using the selected variables from LASSO
+gam_WA <- gam(death ~ s(daysSinceStart) + s(positive) + s(total) + s(positiveIncrease), 
+              data = WA_complete, 
+              family = poisson())
+
+summary(gam_WA)
+# Plot the smooths
+plot(gam_WA, pages = 1, residuals = TRUE, rug = TRUE)
+# Check GAM diagnostics
+gam.check(gam_WA)
+# Plot residuals vs fitted
+plot(gam_WA$residuals ~ gam_WA$fitted.values, 
+     xlab = "Fitted Values", ylab = "Residuals", main = "Residuals vs Fitted")
+abline(h = 0, col = "red")
+
+```
+
+The model summaries indicate strong performance, with adjusted R-squared values close to 1 and a high percentage of deviance explained, signifying that the models captured nearly all variability in deaths. The significance of smooth terms in the summaries, with low p-values, underscores the importance of the chosen predictors and the utility of using GAMs to account for nonlinearities. Residual diagnostics further affirm the adequacy of the models by confirming the assumptions of the Poisson regression.
+
+Overall, the combination of GAMs and lasso regression provides a robust framework for understanding and predicting COVID-19 deaths, while also allowing for clear interpretability of the underlying relationships between predictors and the response variable.
+
+
+### Training and Testing
+
+#### Alabama
+
+```{r}
+AL_train_index <- sample(1:nrow(AL_complete), size = 0.7 * nrow(AL_complete)) # 70% training
+AL_train_data <- AL_complete[AL_train_index, ]
+AL_test_data <- AL_complete[-AL_train_index, ]
+
+trained_gam_AL <- gam(death ~ s(positive) + s(totalTestResults) + s(hospitalized) + 
+                s(positiveCasesViral) + s(deathIncrease) +
+                s(daysSinceStart), data = AL_train_data) 
+              
+AL_predictions <- predict(trained_gam_AL, newdata = AL_test_data)
+```
+
+```{r}
+# Mean Squared Error (MSE)
+mse <- mean((AL_test_data$death - AL_predictions)^2)
+
+# Root Mean Squared Error (RMSE)
+rmse <- sqrt(mse)
+
+# Mean Absolute Error (MAE)
+mae <- mean(abs(AL_test_data$death - AL_predictions))
+
+# Print results
+print(list(MSE = mse, RMSE = rmse, MAE = mae))
+
+```
+
+```{r}
+# Plot of Actual and Predicted Deaths in Alabama over Time
+plot_data <- data.frame(
+  daysSinceStart = AL_test_data$daysSinceStart,
+  Actual = AL_test_data$death,
+  Predicted = AL_predictions
+)
+
+
+ggplot(plot_data, aes(x = daysSinceStart)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
+  labs(title = "Actual vs Predicted Deaths Over Time (Alabama)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+
+```
+
+#### Washington
+
+```{r}
+WA_train_index <- sample(1:nrow(WA_complete), size = 0.7 * nrow(WA_complete)) # 70% training
+WA_train_data <- WA_complete[WA_train_index, ]
+WA_test_data <- WA_complete[-WA_train_index, ]
+
+trained_gam_WA <- gam(death ~ s(positive) + s(total) + s(daysSinceStart), 
+                      data = WA_train_data) 
+
+WA_predictions <- predict(trained_gam_WA, newdata = WA_test_data)
+```
+
+```{r}
+# Mean Squared Error (MSE)
+WA_mse <- mean((WA_test_data$death - WA_predictions)^2)
+
+# Root Mean Squared Error (RMSE)
+WA_rmse <- sqrt(WA_mse)
+
+# Mean Absolute Error (MAE)
+WA_mae <- mean(abs(WA_test_data$death - WA_predictions))
+
+# Print results
+print(list(MSE = WA_mse, RMSE = WA_rmse, MAE = WA_mae))
+```
+
+```{r}
+# Plot of Actual and Predicted Deaths in WASHINGTON over Time
+WA_plot_data <- data.frame(
+  daysSinceStart = WA_test_data$daysSinceStart,
+  Actual = WA_test_data$death,
+  Predicted = WA_predictions
+)
+
+
+ggplot(WA_plot_data, aes(x = daysSinceStart)) +
+  geom_line(aes(y = Actual, color = "Actual"), size = 1) +
+  geom_line(aes(y = Predicted, color = "Predicted"), size = 1) +
+  labs(title = "Actual vs Predicted Deaths Over Time (Washington)", 
+       x = "Days Since Jan 1, 2020", y = "Deaths") +
+  scale_color_manual(values = c("Actual" = "blue", "Predicted" = "red")) +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+```
+
+## Conclusion
+
+## Sources
+
+Ciotti, M., Ciccozzi, M., Terrinoni, A., Jiang, W. C., Wang, C. B., & Bernardini, S. (2020). The COVID-19 pandemic. *Critical Reviews in Clinical Laboratory Sciences*, *57*(6), 365–388. <https://doi.org/10.1080/10408363.2020.1783198>
+
+Erwin, P. C., Mucheck, K. W., & Brownson, R. C. (2021). Different Responses to COVID-19 in Four US States: Washington, New York, Missouri, and Alabama. American journal of public health, 111(4), 647–651. <https://doi.org/10.2105/AJPH.2020.306111>
