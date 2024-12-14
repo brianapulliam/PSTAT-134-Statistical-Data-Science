@@ -136,9 +136,12 @@ death %>%
   
 ```
 
+After 
+
+
 ## Data Cleaning
 
-After looking through the site and initially looking at the data we're able to remove a good chunk of variables that won't be of use. We also want to isolate the states we're interested in, Washington and Alabama.
+After looking through the site and initially looking at the data we're able to remove a good chunk of variables that won't be of use. 
 
 ```{r}
 AL <- states_data %>% 
