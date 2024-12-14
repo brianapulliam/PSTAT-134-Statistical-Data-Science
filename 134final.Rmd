@@ -21,7 +21,7 @@ library(dplyr)
 
 [![Image 1: CDC medical illustrator of COVID-19](germ.jpg){width="518"}](https://www.nytimes.com/2020/04/01/health/coronavirus-illustration-cdc.html)
 
-The COVID-19 outbreak was a global public health emergency that affected people's lives all over the world. COVID-19 is an infectious disease caused by the SARS-CoV2 virus that spread from person to person most commonly through droplet transmission. Once a person tested positive they could develop a variety of symptoms ranging from mild to severe ([WHO](https://www.who.int/health-topics/coronavirus#tab=tab_1)). In an effort to slow the rapid spread, many public health officials called for stay at home orders which forced non-essential workers to shelter at home. The pandemic led to huge loss of life, increased poverty, and economic loss ([cite](https://www.tandfonline.com/doi/full/10.1080/10408363.2020.1783198#abstract)). It was an event that lead the world to think about responsibility public health offices have when dealing with a pandemic.
+The COVID-19 outbreak was a global public health emergency that affected people's lives all over the world. COVID-19 is an infectious disease caused by the SARS-CoV2 virus that spread from person to person most commonly through droplet transmission. Once a person tested positive they could develop a variety of symptoms ranging from mild to severe ([WHO](https://www.who.int/health-topics/coronavirus#tab=tab_1)). In an effort to slow the rapid spread, many public health officials called for stay at home orders which forced non-essential workers to shelter at home. The pandemic led to huge loss of life, increased poverty, and economic loss ([Ciotti](https://www.tandfonline.com/doi/full/10.1080/10408363.2020.1783198#abstract)). It was an event that lead the world to think about responsibility public health offices have when dealing with a pandemic.
 
 ### Why it Matters?
 
@@ -61,6 +61,8 @@ unique(states_data$state)
 
 We also know there is a variable regarding the dates of all the observations and from the API site we know there was data collection from January 2020 and March 2021. We do not know if each state and territory have the same amount of observations during this period.
 
+We start by grouping the states observations and then seeing the amount of observations each state has.
+
 ```{r}
 date_recorded <- states_data %>% 
   group_by(state) %>% 
@@ -70,18 +72,26 @@ date_recorded %>%
   kbl() %>%
   scroll_box(width = "300px", height = "400px")
 
+  
+```
+
+Now for us to be able to better analyze the data we are going to arrange the states from the largest number of observations to the lowest number of observations.
+
+```{r}
 date_recorded %>% 
   arrange(n)
   
-  
+
 ```
+
+To visualize the data we are working with we are going to graph the 6 states with the highest amount of observations and the 6 states with the lowest amount of observations.
 
 ```{r, fig.show='hold', out.width="50%"}
 
 date_recorded %>%
   arrange(desc(n)) %>% 
   head() %>% 
-  ggplot(aes(x = state, y = n)) +
+  ggplot(aes(x =reorder(state, -n), y = n)) +
   geom_bar(stat = "identity", fill = "dodgerblue") +
   labs(
     title = "6 States with highest observations", 
@@ -90,9 +100,10 @@ date_recorded %>%
   )
 
 date_recorded %>%
+  filter(!state %in% c("AS","GU","MP","VI", "VT", "PR")) %>% #removing included territories
   arrange(n) %>% 
   head() %>% 
-  ggplot(aes(x = state, y = n)) +
+  ggplot(aes(x=reorder(state, n), y = n)) +
   geom_bar(stat = "identity", fill = "forestgreen") +
   labs(
     title = "6 States with lowest observations", 
@@ -102,7 +113,7 @@ date_recorded %>%
 
 ```
 
-Looking at these two graphs we can see the states that recorded the data the longest are Washington, Massachusetts, Florida, Virignia, Nebraska , and New Jersey. The states with the lowest observations are Alabama, American Samoa, Guam, Northern Marina Islands, Puerto Rico , and the Virgin Islands. It seems that Alabama reported is the lowest reporting state and the following would be US territories.
+Looking at these two graphs we can see the states with the most observations are Washington, Massachusetts, Florida, Virignia, Nebraska , and New Jersey. The states with the least observations are Alabama, Idaho, Louisiana, Maine, Montana and Missippi. It seems Alabama has the least observations.
 
 ```{r, fig.show='hold', out.width="50%"}
 death <- states_data %>% 
@@ -116,19 +127,19 @@ death %>%
   ggplot(death, mapping = aes(x = reorder(state, -death), y = death)) +
   geom_bar(stat = "identity") + theme_minimal() +
   labs(
-    title = "Cumulative Deaths by State",
+    title = "Highest Cumulative COVID-19 Deaths by State",
     x = "State",
     y = "Cumulative Deaths"
   )
 
 death %>% 
-  filter(!state %in% c("AS","GU","MP","VI", "VT")) %>% 
+  filter(!state %in% c("AS","GU","MP","VI", "VT", "DC")) %>% #removing included territories
   arrange(desc(death)) %>% 
   tail() %>% 
   ggplot(death, mapping = aes(x = reorder(state, -death), y = death)) +
   geom_bar(stat = "identity") + theme_minimal() +
   labs(
-    title = "Cumulative Deaths by State",
+    title = "Lowest Cumulative COVID-19 Deaths by State",
     x = "State",
     y = "Cumulative Deaths"
   ) 
@@ -136,16 +147,25 @@ death %>%
   
 ```
 
-After 
-
+Although the chart has the highest amount of cumulative deaths, it's important to note that these particular states have a population that is significantly larger than most states. This could lead to a higher cumulative death count. From our data we can see the states with the highest cumulative death counts are California, Texas, New York, Pensylvannia and New Jersey. The states with lowest cumulative death counts are Montana, New Hampshire, Maine, Wyoming, Hawaii, and Alaska. Most of these states also have very low populations. Perhaps in the future we could graph the death in proportion to the population.
 
 ## Data Cleaning
 
-After looking through the site and initially looking at the data we're able to remove a good chunk of variables that won't be of use. 
+After our EDA we decided on exploring the data for Washington and Alabama. We chose these states because Washington and Alabama were polar opposites in the amount of observations with Washington having the most and Alabama having the least, along with their similarities in their populations according to the 2020 Census, we decided to use these two states.
 
 ```{r}
 AL <- states_data %>% 
-  filter(state == "AL") %>% 
+  filter(state == "AL")
+
+WA <- states_data %>% 
+  filter(state == "WA") 
+
+```
+
+In our EDA we also saw that many of our variables had an overwhelming amount of missing data. We found out that not all states reported all the variables included. We decided to calculate the proportion of missing values in each column, but we only kept columns that had 35% or fewer values are missing. After that the two datasets had different amounts of variables so we decided to individually remove the variables that were outside the scope of our project. We then filtered out variables that contained constant data.
+
+```{r}
+AL <- AL %>% 
   select(which(colMeans(is.na(.)) <= 0.35),"death",
          "recovered","onVentilatorCumulative",
          -state,-hash,-checkTimeEt,-dateChecked,
@@ -154,17 +174,14 @@ AL <- states_data %>%
          -lastUpdateEt,-negative)
 AL <- AL %>% select_if(~ length(unique(.)) > 1)
 
-WA <- states_data %>% 
-  filter(state == "WA") %>% 
-  select(which(colMeans(is.na(.)) <= 0.35),"death",
+WA <- WA %>% 
+   select(which(colMeans(is.na(.)) <= 0.35),"death",
          "recovered",,"onVentilatorCumulative")
 WA <- WA %>% select_if(~ length(unique(.)) > 1)
 
 ```
 
-Brief Description
-
-We want to compare the data sets to see what they have in common. From there we're able to isolate the common columns and make those are the ones included in the two individual data sets, `AL` and `WA`.
+To ensure both datasets have the same variables, we see which of those variables overlap and then only select them for both of the datasets.
 
 ```{r}
 common_columns <- intersect(names(AL), names(WA)) 
@@ -176,11 +193,10 @@ WA <- WA %>% select(all_of(common_columns))
 
 ```
 
-```{r}
-vis_miss(AL)
-```
+Once the variables are finalized for both `AL` and `WA` we want to see the proportion of missing values for each variable with the `vis_miss` function.
 
-```{r}
+```{r, fig.show='hold', out.width="50%"}
+vis_miss(AL)
 vis_miss(WA)
 ```
 
@@ -198,27 +214,36 @@ WA_complete <- complete(imputed_WA)
 
 ```
 
+We intially removed the date column from the imputation since dates are not imputed, but we later added it back after the imputation.
+
 ```{r}
 AL_complete$date <- AL$date
 WA_complete$date <- WA$date
+
 WA_complete <- WA_complete %>% drop_na(positive, positiveCasesViral)
 
+```
+
+```{r, fig.show='hold', out.width="50%"}
 vis_miss(AL_complete)
 vis_miss(WA_complete)
-names(WA_complete)
-ncol(AL_complete)
-nrow(AL_complete)
-ncol(WA_complete)
-nrow(WA_complete)
-
 ```
+
+We no longer have missing data! Earlier we made note that Washington and Alabama did not have the same amount of observations so now we'll see what day they began to report COVID data.
 
 ```{r}
 WA$date %>% tail()%>% kable()
 AL$date %>% tail() %>% kable()
 ```
 
+```{r}
+nrow(AL_complete)
+nrow(WA_complete)
+```
+
 From here we can see that `AL` has 366 entries while `WA` has 420. We want to have an even comparison so we will find the date for `WA` starts on January 14, 2020 while `AL` starts on March 7th, 2020.
+
+Now we're converting `date` into a YYYY-MM-DD date format. Then a baseline date (2020-01-01) is set so we're able to compare the data sets more easily. We do this to easily compute the amount of days that have been passed since the baseline date.
 
 ```{r}
 # Convert date column to Date format
@@ -233,6 +258,8 @@ AL_complete$daysSinceStart <- as.numeric(AL_complete$date - baseline_date)
 WA_complete$daysSinceStart <- as.numeric(WA_complete$date - baseline_date)
 ```
 
+## E.D.A of Cleaned Data
+
 #### Correlation Plot
 
 ```{r, side-by-side-plots, fig.show="hold", fig.width=4, fig.height=4}
@@ -241,12 +268,12 @@ library(corrplot)
 AL_corr <- AL_complete %>% 
   select(-date) %>% 
   cor() %>% 
-  corrplot(type = "lower", diag = F)
+  corrplot(type = "lower", diag = F, method = "number")
 
 WA_corr <- WA_complete %>% 
   select(-date) %>% 
   cor() %>% 
-  corrplot(type = "lower", diag = F)
+  corrplot(type = "lower", diag = F, method = "number")
 
   
 ```
@@ -413,5 +440,7 @@ ggplot(WA_plot_data, aes(x = daysSinceStart)) +
 ## Conclusion
 
 ## Sources
+
+Ciotti, M., Ciccozzi, M., Terrinoni, A., Jiang, W. C., Wang, C. B., & Bernardini, S. (2020). The COVID-19 pandemic. *Critical Reviews in Clinical Laboratory Sciences*, *57*(6), 365–388. <https://doi.org/10.1080/10408363.2020.1783198>
 
 Erwin, P. C., Mucheck, K. W., & Brownson, R. C. (2021). Different Responses to COVID-19 in Four US States: Washington, New York, Missouri, and Alabama. American journal of public health, 111(4), 647–651. <https://doi.org/10.2105/AJPH.2020.306111>
